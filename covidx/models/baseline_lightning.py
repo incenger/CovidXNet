@@ -1,13 +1,15 @@
 import os
 
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+from pytorch_lightning.metrics.functional import accuracy
 from torch import nn
 from torchvision import models, transforms
 from torchvision.datasets import MNIST
 
-import pytorch_lightning as pl
-from pytorch_lightning.metrics.functional import accuracy
+from covidx.metrics import covid_xray_metrics
+
 from .baseline import ResnetCovidX
 
 
@@ -30,6 +32,7 @@ class XRayClassification(pl.LightningModule):
             torch.Tensor: output logits tensor, shape (B, num_class)
         """
         out: torch.Tensor = self.model(x)
+        return out
 
     def training_step(self, batch, batch_idx):
         """
@@ -40,7 +43,6 @@ class XRayClassification(pl.LightningModule):
 
         self.log('train_loss', loss, logger=True)
         return loss
-
 
     def validation_step(self, batch, batch_idx):
         """
@@ -67,6 +69,29 @@ class XRayClassification(pl.LightningModule):
 
         self.log('val_acc', acc, prog_bar=True, logger=True)
         self.log('val_loss', avg_loss, prog_bar=False, logger=True)
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.model(x)
+        preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
+
+
+        return {'labels': y, 'preds': preds}
+
+    def test_epoch_end(self, outputs):
+        labels = torch.cat([x['labels'] for x in outputs])
+        preds = torch.cat([x['preds'] for x in outputs])
+
+
+        acc = accuracy(preds, labels)
+        xray_metrics = covid_xray_metrics(labels, preds)
+
+        return {
+            'test_acc': acc,
+            'sensitivity': xray_metrics['sensitivity'],
+            'ppv': xray_metrics['ppv'],
+            'cm': xray_metrics['cm']
+        }
 
     def configure_optimizers(self):
         """
