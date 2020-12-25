@@ -7,6 +7,7 @@ from pytorch_lightning.metrics.functional import accuracy
 from torch import nn
 from torchvision import models, transforms
 from torchvision.datasets import MNIST
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from covidx.metrics import covid_xray_metrics
 
@@ -98,4 +99,15 @@ class XRayClassification(pl.LightningModule):
     def configure_optimizers(self):
         """
         """
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+
+        lr_dict = {
+            'scheduler': ReduceLROnPlateau(optimizer, patience=5),
+            'interval': 'epoch', # The unit of the scheduler's step size
+            'frequency': 1, # The frequency of the scheduler
+            'reduce_on_plateau': True, # For ReduceLROnPlateau scheduler
+            'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+            'strict': True, # Whether to crash the training if `monitor` is not found
+        }
+
+        return [optimizer], [lr_dict]
