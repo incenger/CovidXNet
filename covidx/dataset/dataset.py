@@ -1,8 +1,24 @@
 import random
 import torch
+import torchvision.transforms as transforms
 
 from torchvision.datasets import ImageFolder
 
+def xray_augmentation():
+    """ Augmentation for X-ray images
+
+    Reference: Section 3.5 in https://arxiv.org/pdf/2003.09871.pdf
+
+    Including: Translation, Rotation, Horizontal Flip, Zoom and Intensity Shift
+    """
+
+    xray_aug = transforms.Compose([
+        transforms.RandomHorizontalFlip(0.5),
+        transforms.RandomAffine(degrees=10, translate=(0.2, 0.2), scale=(0.8, 1.2)),
+        transforms.ColorJitter(brightness=0.2)
+    ])
+
+    return xray_aug
 
 def create_balance_dl(dataset, batch_size, num_workers):
 
