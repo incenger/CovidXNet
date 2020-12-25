@@ -63,6 +63,8 @@ class ConvNetXray(nn.Module):
     """
     Simple ConvNet
 
+    Input image size should be (224, 224)
+
     Reference: https://cs231n.github.io/convolutional-networks/
     """
     def __init__(self, num_class=3):
