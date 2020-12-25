@@ -10,7 +10,7 @@ from torchvision.datasets import MNIST
 
 from covidx.metrics import covid_xray_metrics
 
-from .baseline import ResnetCovidX
+from .baseline import ResnetCovidX, EfficientNetCovidXray, ConvNetXray
 
 
 class XRayClassification(pl.LightningModule):
@@ -21,7 +21,9 @@ class XRayClassification(pl.LightningModule):
     def __init__(self, num_class=3):
         super().__init__()
         self.num_class = num_class
-        self.model = ResnetCovidX(num_class=num_class)
+        # self.model = ResnetCovidX(num_class=num_class)
+        # self.model = ConvNetXray(num_class=num_class)
+        self.model = EfficientNetCovidXray(num_class=num_class)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -68,7 +70,7 @@ class XRayClassification(pl.LightningModule):
         tensorboard_log = {'val_loss': avg_loss}
 
         self.log('val_acc', acc, prog_bar=True, logger=True)
-        self.log('val_loss', avg_loss, prog_bar=False, logger=True)
+        self.log('val_loss', avg_loss, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
