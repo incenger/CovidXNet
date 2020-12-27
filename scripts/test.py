@@ -22,10 +22,23 @@ TEST_TRANSFORM = transforms.Compose([
 CLS_MAPPING = ['COVID-19', 'normal', 'pneumonia']
 
 
-def test():
+def pil_loader(path):
+    with open(path, 'rb') as f:
+        img = Image.open(f)
+        return img.convert('RGB')
 
-    test_set = ImageFolder('../data/covidx_image_folder/test/',
-                           transform=TEST_TRANSFORM)
+
+def evaluate(ckpt_path, test_folder):
+    """ Evaluate model
+
+    Returns the metrics defined in 'covidx/metrics'
+
+    Args:
+        ckpt_path: path to model checkpoint
+        test_folder: test folder - ImageFolder-like structure
+    """
+
+    test_set = ImageFolder(test_folder, transform=TEST_TRANSFORM)
 
     test_loader = DataLoader(test_set,
                              batch_size=32,
@@ -33,25 +46,19 @@ def test():
                              num_workers=12,
                              pin_memory=True)
 
-    resnetx = XRayClassification.load_from_checkpoint(
-        './lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt',
-        map_location=lambda storage, loc: storage)
+    model = XRayClassification.load_from_checkpoint(
+        ckpt_path, map_location=lambda storage, loc: storage)
 
-    resnetx.to(torch.device('cuda'))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
 
     trainer = pl.Trainer(gpus=1, checkpoint_callback=False, logger=False)
 
-    result_dict = trainer.test(resnetx, test_loader, verbose=False)[0]
+    result_dict = trainer.test(model, test_loader, verbose=False)[0]
 
     for k, v in result_dict.items():
         print(k)
         print(v)
-
-
-def pil_loader(path):
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 
 def test_debug(ckpt_path, test_folder, failure_path):
@@ -96,6 +103,10 @@ def test_debug(ckpt_path, test_folder, failure_path):
 
 
 if __name__ == "__main__":
+    evaluate(
+        "./lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt",
+        "../data/covidx_image_folder/test/")
+
     test_debug(
         "./lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt",
         "../data/covidx_image_folder/test/", "failure.csv")
