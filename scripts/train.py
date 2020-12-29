@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision.datasets import ImageFolder
+from covidx.dataset.dataset import CovidxDataset
 from argparse import ArgumentParser
 from covidx.models.baseline_lightning import XRayClassification
 from covidx.dataset import create_balance_dl, xray_augmentation
@@ -20,9 +21,9 @@ def main(args):
         transforms.Normalize((0.5, ), (0.5, )),
     ])
 
-    train_set = ImageFolder('../data/covidx_image_folder/train',
+    train_set = CovidxDataset('/home/light/work/cv-project/covidx_image_folder/train',
                             transform=transform)
-    valid_set = ImageFolder('../data/covidx_image_folder/validation/',
+    valid_set = CovidxDataset('/home/light/work/cv-project/covidx_image_folder/validation/',
                             transform=transform)
 
     # train_loader_folder = create_balance_dl(train_set,

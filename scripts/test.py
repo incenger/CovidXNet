@@ -9,7 +9,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
-
+from covidx.dataset.dataset import CovidxDataset
 from covidx.models.baseline_lightning import XRayClassification
 
 TEST_TRANSFORM = transforms.Compose([
@@ -92,8 +92,12 @@ def test_debug(ckpt_path, test_folder, failure_path):
             pred = torch.argmax(F.log_softmax(logit, dim=1), dim=1).item()
             pred_str = CLS_MAPPING[pred]
 
+
             if pred_str != cls:
                 failure.append((os.path.join(cls, sample), pred_str, cls))
+    resnetx = XRayClassification.load_from_checkpoint(
+    './lightning_logs/version_5/checkpoints/epoch=2-step=5387.ckpt',
+    map_location=lambda storage, loc: storage)
 
     # Write failure
     with open(failure_path, 'w') as f:
