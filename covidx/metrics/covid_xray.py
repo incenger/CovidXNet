@@ -37,7 +37,7 @@ def covid_xray_metrics(gts, preds):
     ppv = np.zeros(nclasses)
 
     for c in range(nclasses):
-        sensitivity[c] = cm[c][c] / np.sum(cm, axis=0)[c]
-        ppv[c] = cm[c][c] / np.sum(cm, axis=1)[c]
+        sensitivity[c] = cm[c][c] / np.sum(cm, axis=1)[c]
+        ppv[c] = cm[c][c] / np.sum(cm, axis=0)[c]
 
     return {"cm": cm, "sensitivity": sensitivity, "ppv": ppv}
