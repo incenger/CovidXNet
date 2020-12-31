@@ -80,7 +80,7 @@ def central_crop(img: Image) -> Image:
 
 
 class CovidxDataset(ImageFolder):
-    def __init__(self, root, transform, state):
+    def __init__(self, root, transform, state=None):
         super().__init__(root)
         self.covid_sample = [s for s in self.samples if s[1] == 0]
         self.normal_sample = [s for s in self.samples if s[1] == 1]
@@ -88,6 +88,15 @@ class CovidxDataset(ImageFolder):
         self.transform = transform
         self.turn = 0
         self.state = state
+
+        # calculating class weights for loss function
+        total_samples = len(self.samples)
+        cuda0 = torch.device('cuda:0')
+        self.class_weights = torch.tensor([
+            total_samples / len(self.covid_sample),
+            total_samples / len(self.normal_sample),
+            total_samples / len(self.pneumonia_sample),
+        ], device=cuda0)
 
     def shuffleSamples(self):
         random.shuffle(self.covid_sample)

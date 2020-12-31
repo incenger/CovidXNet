@@ -46,8 +46,8 @@ def evaluate(ckpt_path, test_folder):
                              num_workers=12,
                              pin_memory=True)
 
-    model = XRayClassification.load_from_checkpoint(
-        ckpt_path, map_location=lambda storage, loc: storage)
+    # model = XRayClassification.load_from_checkpoint(
+    #     ckpt_path, map_location=lambda storage, loc: storage)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -73,8 +73,8 @@ def test_debug(ckpt_path, test_folder, failure_path):
     """
 
     # Load model checkpoint
-    model = XRayClassification.load_from_checkpoint(
-        ckpt_path, map_location=lambda storage, loc: storage)
+    # model = XRayClassification.load_from_checkpoint(
+    #     ckpt_path, map_location=lambda storage, loc: storage)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -92,12 +92,8 @@ def test_debug(ckpt_path, test_folder, failure_path):
             pred = torch.argmax(F.log_softmax(logit, dim=1), dim=1).item()
             pred_str = CLS_MAPPING[pred]
 
-
             if pred_str != cls:
                 failure.append((os.path.join(cls, sample), pred_str, cls))
-    # resnetx = XRayClassification.load_from_checkpoint(
-    # './lightning_logs/version_5/checkpoints/epoch=2-step=5387.ckpt',
-    # map_location=lambda storage, loc: storage)
 
     # Write failure
     with open(failure_path, 'w') as f:
@@ -106,11 +102,13 @@ def test_debug(ckpt_path, test_folder, failure_path):
         writer.writerows(failure)
 
 
+
+
 if __name__ == "__main__":
     evaluate(
         "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_2/checkpoints/epoch=0-step=673.ckpt",
         "../data/covidx_image_folder/test/")
 
-    # test_debug(
-    #     "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_1/checkpoints/epoch=34-step=23589.ckpt",
-    #     "../data/covidx_image_folder/test/", "failure.csv")
+    test_debug(
+        "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_1/checkpoints/epoch=34-step=23589.ckpt",
+        "../data/covidx_image_folder/test/", "failure.csv")

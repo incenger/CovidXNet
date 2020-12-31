@@ -14,17 +14,41 @@ from covidx.metrics import covid_xray_metrics
 from .baseline import ResnetCovidX, EfficientNetCovidXray, ConvNetXray
 
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# https://github.com/gokulprasadthekkel/pytorch-multi-class-focal-loss/blob/master/focal_loss.py
+# https://github.com/AdeelH/pytorch-multi-class-focal-loss
+class FocalLoss(nn.modules.loss._WeightedLoss):
+    def __init__(self, weight=None, gamma=2, reduction='mean'):
+        super(FocalLoss, self).__init__(weight, reduction=reduction)
+        self.gamma = gamma
+        # weight parameter will act as the alpha parameter to balance class weights
+        self.weight = weight
+
+    def forward(self, input, target):
+        ce_loss = F.cross_entropy(
+            input, target, reduction=self.reduction, weight=self.weight)
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
+        return focal_loss
+
+
 class XRayClassification(pl.LightningModule):
     """
     Args:
         num_class: number of output classes
     """
-    def __init__(self, num_class=3):
+    def __init__(self, num_class=3, class_weights=None):
         super().__init__()
         self.num_class = num_class
         # self.model = ResnetCovidX(num_class=num_class)
         # self.model = ConvNetXray(num_class=num_class)
         self.model = EfficientNetCovidXray(num_class=num_class)
+        self.class_weights = class_weights
+        self.focal_loss = FocalLoss(weight=class_weights)
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -42,7 +66,7 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         out = self.model(x)
-        loss = F.cross_entropy(out, y)
+        loss = self.focal_loss(out, y)
 
         self.log('train_loss', loss, logger=True)
         return loss
@@ -52,7 +76,7 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         logits = self.model(x)
-        loss = F.cross_entropy(logits, y)
+        loss = self.focal_loss(logits, y)
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
         self.log('val_loss', loss)
