@@ -5,13 +5,14 @@ import torch
 import torch.nn.functional as F
 from pytorch_lightning.metrics.functional import accuracy
 from torch import nn
+from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 from torchvision import models, transforms
 from torchvision.datasets import MNIST
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from covidx.metrics import covid_xray_metrics
+from covidx.optimizer import Ranger
 
-from .baseline import ResnetCovidX, EfficientNetCovidXray, ConvNetXray
+from .baseline import ConvNetXray, EfficientNetCovidXray, ResnetCovidX
 
 
 class XRayClassification(pl.LightningModule):
@@ -42,7 +43,8 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         out = self.model(x)
-        loss = F.cross_entropy(out, y)
+        weight = torch.tensor([0.6, 0.2, 0.2]).to(x.device)
+        loss = F.cross_entropy(out, y, weight=weight)
 
         self.log('train_loss', loss, logger=True)
         return loss
@@ -52,7 +54,9 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         logits = self.model(x)
-        loss = F.cross_entropy(logits, y)
+        # loss = F.cross_entropy(logits, y)
+        weight = torch.tensor([0.6, 0.2, 0.2]).to(x.device)
+        loss = F.cross_entropy(logits, y, weight=weight)
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
         self.log('val_loss', loss)
@@ -78,13 +82,11 @@ class XRayClassification(pl.LightningModule):
         logits = self.model(x)
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
-
         return {'labels': y, 'preds': preds}
 
     def test_epoch_end(self, outputs):
         labels = torch.cat([x['labels'] for x in outputs])
         preds = torch.cat([x['preds'] for x in outputs])
-
 
         acc = accuracy(preds, labels)
         xray_metrics = covid_xray_metrics(labels, preds)
@@ -99,15 +101,17 @@ class XRayClassification(pl.LightningModule):
     def configure_optimizers(self):
         """
         """
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
 
         lr_dict = {
-            'scheduler': ReduceLROnPlateau(optimizer, patience=5),
-            'interval': 'epoch', # The unit of the scheduler's step size
-            'frequency': 1, # The frequency of the scheduler
-            'reduce_on_plateau': True, # For ReduceLROnPlateau scheduler
-            'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-            'strict': True, # Whether to crash the training if `monitor` is not found
+            'scheduler': ExponentialLR(optimizer, gamma=0.97, verbose=True),
+            # 'scheduler': ReduceLROnPlateau(optimizer, patience=5, verbose=True),
+            'interval': 'epoch',  # The unit of the scheduler's step size
+            'frequency': 2,  # The frequency of the scheduler
+            # 'reduce_on_plateau': Fj, # For ReduceLROnPlateau scheduler
+            # 'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+            'strict':
+            True,  # Whether to crash the training if `monitor` is not found
         }
 
         return [optimizer], [lr_dict]
