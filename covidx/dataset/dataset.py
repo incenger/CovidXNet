@@ -94,21 +94,6 @@ class CovidxDataset(ImageFolder):
         random.shuffle(self.normal_sample)
         random.shuffle(self.pneumonia_sample)
 
-    def __getitem__(self, index):
-
-        pos = index // 3
-        self.turn %= 3
-        if self.turn == 0:
-            pos %= len(self.pneumonia_sample)
-            path, target = self.pneumonia_sample[pos]
-        elif self.turn == 1:
-            pos %= len(self.normal_sample)
-            path, target = self.normal_sample[pos]
-        else:
-            pos %= len(self.covid_sample)
-            path, target = self.covid_sample[pos]
-        self.turn += 1
-
     def __len__(self):
         if self.state == 'train':
             return max(len(self.covid_sample), len(self.normal_sample),
