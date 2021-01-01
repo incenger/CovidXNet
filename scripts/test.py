@@ -60,7 +60,7 @@ def evaluate(ckpt_path, test_folder):
         print(k)
         print(v)
 
-
+@torch.no_grad()
 def test_debug(ckpt_path, test_folder, failure_path):
     """ Evaluate and write failure cases to a file
 
@@ -75,6 +75,8 @@ def test_debug(ckpt_path, test_folder, failure_path):
     # Load model checkpoint
     model = XRayClassification.load_from_checkpoint(
         ckpt_path, map_location=lambda storage, loc: storage)
+
+    model.eval()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
