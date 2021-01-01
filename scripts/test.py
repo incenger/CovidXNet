@@ -95,9 +95,6 @@ def test_debug(ckpt_path, test_folder, failure_path):
 
             if pred_str != cls:
                 failure.append((os.path.join(cls, sample), pred_str, cls))
-    resnetx = XRayClassification.load_from_checkpoint(
-    './lightning_logs/version_5/checkpoints/epoch=2-step=5387.ckpt',
-    map_location=lambda storage, loc: storage)
 
     # Write failure
     with open(failure_path, 'w') as f:
