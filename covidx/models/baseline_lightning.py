@@ -26,6 +26,8 @@ class FocalLoss(nn.modules.loss._WeightedLoss):
         self.gamma = gamma
         # weight parameter will act as the alpha parameter to balance class weights
         self.weight = weight
+        cuda0 = torch.device('cuda:0')
+        self.class_weights = torch.tensor([2, 1.25, 1], device=cuda0)
 
     def forward(self, input, target):
         ce_loss = F.cross_entropy(
@@ -46,8 +48,7 @@ class XRayClassification(pl.LightningModule):
         # self.model = ResnetCovidX(num_class=num_class)
         # self.model = ConvNetXray(num_class=num_class)
         self.model = EfficientNetCovidXray(num_class=num_class)
-        self.class_weights = class_weights
-        self.focal_loss = FocalLoss(weight=class_weights)
+        self.focal_loss = FocalLoss()
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

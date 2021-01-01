@@ -64,9 +64,7 @@ def main(args):
                                      num_workers=12,
                                      pin_memory=True)
 
-    print(train_set.class_weights)
-
-    resnetx = XRayClassification(num_class=3, class_weights=train_set.class_weights)
+    resnetx = XRayClassification(num_class=3)
 
     trainer = pl.Trainer.from_argparse_args(
         args, default_root_dir='/content/drive/My Drive/Models/CovidNetCheckpoints/')
@@ -92,6 +90,7 @@ def main(args):
         print(k)
         print(v)
 
+    store_model = resnetx
 
 if __name__ == "__main__":
     parser = ArgumentParser()
