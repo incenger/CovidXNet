@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision.datasets import ImageFolder
+from pytorch_lightning.callbacks import ModelCheckpoint
 from covidx.dataset.dataset import CovidxDataset
 from argparse import ArgumentParser
 from covidx.models.baseline_lightning import XRayClassification
