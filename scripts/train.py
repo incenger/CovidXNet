@@ -77,7 +77,8 @@ def main(args):
     trainer = pl.Trainer(
         callbacks=[checkpoint_callback],
         gpus=1,
-        accelerator='dp'
+        accelerator='dp',
+        max_epochs=50
     )
     trainer.fit(resnetx, train_loader_folder, valid_loader_folder)
 
