@@ -14,27 +14,20 @@ from covidx.metrics import covid_xray_metrics
 from .baseline import ResnetCovidX, EfficientNetCovidXray, ConvNetXray
 
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
 
-# https://github.com/gokulprasadthekkel/pytorch-multi-class-focal-loss/blob/master/focal_loss.py
-# https://github.com/AdeelH/pytorch-multi-class-focal-loss
-class FocalLoss(nn.modules.loss._WeightedLoss):
-    def __init__(self, weight=None, gamma=2, reduction='mean'):
-        super(FocalLoss, self).__init__(weight, reduction=reduction)
-        self.gamma = gamma
-        # weight parameter will act as the alpha parameter to balance class weights
-        self.weight = weight
-        cuda0 = torch.device('cuda:0')
-        self.class_weights = torch.tensor([2, 1.25, 1], device=cuda0)
-
-    def forward(self, input, target):
-        ce_loss = F.cross_entropy(
-            input, target, reduction=self.reduction, weight=self.weight)
-        pt = torch.exp(-ce_loss)
-        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
-        return focal_loss
+# # https://github.com/gokulprasadthekkel/pytorch-multi-class-focal-loss/blob/master/focal_loss.py
+# # https://github.com/AdeelH/pytorch-multi-class-focal-loss
+# focal_loss = torch.hub.load(
+# 	'adeelh/pytorch-multi-class-focal-loss',
+# 	model='FocalLoss',
+# 	alpha=torch.tensor([2.0, 1.25, 1.0]),
+# 	gamma=2,
+# 	reduction='mean',
+# 	force_reload=False
+# )
 
 
 class XRayClassification(pl.LightningModule):
@@ -42,13 +35,21 @@ class XRayClassification(pl.LightningModule):
     Args:
         num_class: number of output classes
     """
-    def __init__(self, num_class=3, class_weights=None):
+
+    def __init__(self, num_class=3):
         super().__init__()
         self.num_class = num_class
         # self.model = ResnetCovidX(num_class=num_class)
         # self.model = ConvNetXray(num_class=num_class)
         self.model = EfficientNetCovidXray(num_class=num_class)
-        self.focal_loss = FocalLoss()
+        self.focal_loss = torch.hub.load(
+            'adeelh/pytorch-multi-class-focal-loss',
+            model='FocalLoss',
+            alpha=torch.tensor([4.0, 0.5, 1]),
+            gamma=2,
+            reduction='mean',
+            force_reload=False
+        )
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

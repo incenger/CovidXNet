@@ -66,10 +66,44 @@ def main(args):
 
     resnetx = XRayClassification(num_class=3)
 
-    trainer = pl.Trainer.from_argparse_args(
-        args, default_root_dir='/content/drive/My Drive/Models/CovidNetCheckpoints/')
+    checkpoint_callback = ModelCheckpoint(
+        monitor='val_loss',
+        dirpath='/content/drive/My Drive/Models/CovidNetCheckpoints/',
+        filename='checkpoint-{epoch:02d}-{val_loss:.2f}',
+        save_top_k=3,
+        mode='min',
+    )
+
+    trainer = pl.Trainer(
+        callbacks=[checkpoint_callback],
+        gpus=1,
+        accelerator='dp'
+    )
     trainer.fit(resnetx, train_loader_folder, valid_loader_folder)
 
+    test_folder = "../data/covidx_image_folder/test/"
+    test_set = ImageFolder(test_folder, transform=TEST_TRANSFORM)
+
+    test_loader = DataLoader(test_set,
+                            batch_size=32,
+                            shuffle=False,
+                            num_workers=12,
+                            pin_memory=True)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    resnetx.to(device)
+    resnetx.eval()
+    resnetx.freeze()
+
+    trainer = pl.Trainer(gpus=1, checkpoint_callback=False, logger=False)
+
+    result_dict = trainer.test(resnetx, test_loader, verbose=False)[0]
+
+    for k, v in result_dict.items():
+            print(k)
+            print(v)
+
+    store_model = resnetx
 
 if __name__ == "__main__":
     parser = ArgumentParser()

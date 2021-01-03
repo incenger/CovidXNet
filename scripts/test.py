@@ -77,6 +77,8 @@ def test_debug(ckpt_path, test_folder, failure_path):
         ckpt_path, map_location=lambda storage, loc: storage)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.eval()
+    model.freeze()
     model.to(device)
 
     # Evaluation
@@ -108,7 +110,7 @@ def test_debug(ckpt_path, test_folder, failure_path):
 
 if __name__ == "__main__":
     evaluate(
-        "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_2/checkpoints/epoch=0-step=673.ckpt",
+        "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_13/checkpoints/epoch=15-step=10783.ckpt",
         "../data/covidx_image_folder/test/")
 
     # test_debug(
