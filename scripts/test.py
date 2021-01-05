@@ -51,6 +51,8 @@ def evaluate(ckpt_path, test_folder):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
+    model.eval()
+    model.freeze()
 
     trainer = pl.Trainer(gpus=1, checkpoint_callback=False, logger=False)
 
@@ -77,9 +79,9 @@ def test_debug(ckpt_path, test_folder, failure_path):
         ckpt_path, map_location=lambda storage, loc: storage)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
     model.eval()
     model.freeze()
-    model.to(device)
 
     # Evaluation
     failure = []
@@ -97,9 +99,6 @@ def test_debug(ckpt_path, test_folder, failure_path):
 
             if pred_str != cls:
                 failure.append((os.path.join(cls, sample), pred_str, cls))
-    # resnetx = XRayClassification.load_from_checkpoint(
-    # './lightning_logs/version_5/checkpoints/epoch=2-step=5387.ckpt',
-    # map_location=lambda storage, loc: storage)
 
     # Write failure
     with open(failure_path, 'w') as f:
@@ -113,6 +112,6 @@ if __name__ == "__main__":
         "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_13/checkpoints/epoch=15-step=10783.ckpt",
         "../data/covidx_image_folder/test/")
 
-    # test_debug(
-    #     "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_1/checkpoints/epoch=34-step=23589.ckpt",
-    #     "../data/covidx_image_folder/test/", "failure.csv")
+    test_debug(
+        "/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/version_13/checkpoints/epoch=15-step=10783.ckpt",
+        "../data/covidx_image_folder/test/", "failure.csv")

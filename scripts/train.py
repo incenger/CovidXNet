@@ -10,25 +10,7 @@ from covidx.dataset import create_balance_dl, xray_augmentation
 import csv
 import os
 
-import pytorch_lightning as pl
-import torch
-import torch.nn.functional as F
-import torchvision.transforms as transforms
-from PIL import Image
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
-from tqdm import tqdm
-from covidx.dataset.dataset import CovidxDataset
-from covidx.models.baseline_lightning import XRayClassification
-
 SEED = 1411
-
-TEST_TRANSFORM = transforms.Compose([
-    transforms.Resize((260, 260)),  # change the input image size if needed
-    transforms.Grayscale(num_output_channels=1),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, ), (0.5, )),
-])
 
 CLS_MAPPING = ['COVID-19', 'normal', 'pneumonia']
 
@@ -44,9 +26,9 @@ def main(args):
         transforms.Normalize((0.5, ), (0.5, )),
     ])
 
-    train_set = CovidxDataset('../data/covidx_image_folder/train',
-                            transform=transform, state='train')
-    valid_set = CovidxDataset('../data/covidx_image_folder/validation/',
+    train_set = ImageFolder('../data/covidx_image_folder/train',
+                            transform=transform)
+    valid_set = ImageFolder('../data/covidx_image_folder/validation/',
                             transform=transform)
 
     # train_loader_folder = create_balance_dl(train_set,
@@ -69,9 +51,9 @@ def main(args):
 
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath='/content/drive/My Drive/Models/CovidNetCheckpoints/',
-        filename='checkpoint-{epoch:02d}-{val_loss:.2f}',
-        save_top_k=3,
+        dirpath='/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/focal_loss[5,1,1]-ImageFolder',
+        filename='{epoch:02d}-{val_loss:.2f}',
+        save_top_k=10,
         mode='min',
     )
 
@@ -82,30 +64,6 @@ def main(args):
         max_epochs=50
     )
     trainer.fit(resnetx, train_loader_folder, valid_loader_folder)
-
-    test_folder = "../data/covidx_image_folder/test/"
-    test_set = ImageFolder(test_folder, transform=TEST_TRANSFORM)
-
-    test_loader = DataLoader(test_set,
-                            batch_size=32,
-                            shuffle=False,
-                            num_workers=12,
-                            pin_memory=True)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    resnetx.to(device)
-    resnetx.eval()
-    resnetx.freeze()
-
-    trainer = pl.Trainer(gpus=1, checkpoint_callback=False, logger=False)
-
-    result_dict = trainer.test(resnetx, test_loader, verbose=False)[0]
-
-    for k, v in result_dict.items():
-            print(k)
-            print(v)
-
-    store_model = resnetx
 
 if __name__ == "__main__":
     parser = ArgumentParser()

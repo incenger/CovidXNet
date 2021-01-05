@@ -13,23 +13,6 @@ from covidx.metrics import covid_xray_metrics
 
 from .baseline import ResnetCovidX, EfficientNetCovidXray, ConvNetXray
 
-
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
-
-# # https://github.com/gokulprasadthekkel/pytorch-multi-class-focal-loss/blob/master/focal_loss.py
-# # https://github.com/AdeelH/pytorch-multi-class-focal-loss
-# focal_loss = torch.hub.load(
-# 	'adeelh/pytorch-multi-class-focal-loss',
-# 	model='FocalLoss',
-# 	alpha=torch.tensor([2.0, 1.25, 1.0]),
-# 	gamma=2,
-# 	reduction='mean',
-# 	force_reload=False
-# )
-
-
 class XRayClassification(pl.LightningModule):
     """
     Args:
@@ -42,10 +25,12 @@ class XRayClassification(pl.LightningModule):
         # self.model = ResnetCovidX(num_class=num_class)
         # self.model = ConvNetXray(num_class=num_class)
         self.model = EfficientNetCovidXray(num_class=num_class)
+
+        # https://github.com/AdeelH/pytorch-multi-class-focal-loss
         self.focal_loss = torch.hub.load(
             'adeelh/pytorch-multi-class-focal-loss',
             model='FocalLoss',
-            alpha=torch.tensor([4.0, 0.5, 1]),
+            alpha=torch.tensor([5.0, 1, 1]),
             gamma=2,
             reduction='mean',
             force_reload=False
@@ -114,6 +99,9 @@ class XRayClassification(pl.LightningModule):
 
         acc = accuracy(preds, labels)
         xray_metrics = covid_xray_metrics(labels, preds)
+
+        self.log('COVID19 sensitivity',
+                 xray_metrics['sensitivity'], prog_bar=True, logger=True)
 
         return {
             'test_acc': acc,
