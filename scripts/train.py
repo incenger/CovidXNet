@@ -51,7 +51,7 @@ def main(args):
 
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath='/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/focal_loss[5,1,1]-ImageFolder',
+        dirpath='/content/drive/My Drive/Models/CovidNetCheckpoints/lightning_logs/focal_loss[2,1,1.25]-ImageFolder-create_balance_dl',
         filename='{epoch:02d}-{val_loss:.2f}',
         save_top_k=10,
         mode='min',
