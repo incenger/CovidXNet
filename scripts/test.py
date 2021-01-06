@@ -11,6 +11,7 @@ from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 from covidx.dataset.dataset import CovidxDataset
 from covidx.models.baseline_lightning import XRayClassification
+from sklearn.metrics import roc_auc_score
 
 TEST_TRANSFORM = transforms.Compose([
     transforms.Resize((260, 260)),  # change the input image size if needed

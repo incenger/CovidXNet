@@ -31,15 +31,15 @@ def main(args):
     valid_set = ImageFolder('../data/covidx_image_folder/validation/',
                             transform=transform)
 
-    # train_loader_folder = create_balance_dl(train_set,
-    #                                         batch_size=32,
-    #                                         num_workers=12)
+    train_loader_folder = create_balance_dl(train_set,
+                                            batch_size=32,
+                                            num_workers=12)
 
-    train_loader_folder = DataLoader(train_set,
-                                     batch_size=32,
-                                     shuffle=True,
-                                     num_workers=12,
-                                     pin_memory=True)
+    # train_loader_folder = DataLoader(train_set,
+    #                                  batch_size=32,
+    #                                  shuffle=True,
+    #                                  num_workers=12,
+    #                                  pin_memory=True)
 
     valid_loader_folder = DataLoader(valid_set,
                                      batch_size=32,

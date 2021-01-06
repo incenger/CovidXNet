@@ -8,6 +8,7 @@ from torch import nn
 from torchvision import models, transforms
 from torchvision.datasets import MNIST
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from sklearn.metrics import roc_auc_score
 
 from covidx.metrics import covid_xray_metrics
 
@@ -30,7 +31,7 @@ class XRayClassification(pl.LightningModule):
         self.focal_loss = torch.hub.load(
             'adeelh/pytorch-multi-class-focal-loss',
             model='FocalLoss',
-            alpha=torch.tensor([5.0, 1, 1]),
+            alpha=torch.tensor([2.0, 1, 1.25]),
             gamma=2,
             reduction='mean',
             force_reload=False
@@ -68,7 +69,7 @@ class XRayClassification(pl.LightningModule):
 
         self.log('val_loss', loss)
 
-        return {'val_loss': loss, 'labels': y, 'preds': preds}
+        return {'val_loss': loss, 'labels': y, 'preds': preds, 'logits': logits}
 
     def validation_epoch_end(self, outputs):
         """
@@ -76,38 +77,40 @@ class XRayClassification(pl.LightningModule):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         labels = torch.cat([x['labels'] for x in outputs])
         preds = torch.cat([x['preds'] for x in outputs])
+        logits = torch.cat([x['logits'] for x in outputs])
 
         acc = accuracy(preds, labels)
+        auc_score = roc_auc_score(labels, logits)
 
         tensorboard_log = {'val_loss': avg_loss}
 
         self.log('val_acc', acc, prog_bar=True, logger=True)
         self.log('val_loss', avg_loss, prog_bar=True, logger=True)
+        self.log('auc_score', auc_score, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.model(x)
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
-
-        return {'labels': y, 'preds': preds}
+        return {'labels': y, 'preds': preds, 'logits': logits}
 
     def test_epoch_end(self, outputs):
         labels = torch.cat([x['labels'] for x in outputs])
         preds = torch.cat([x['preds'] for x in outputs])
+        logits = torch.cat([x['logits'] for x in outputs])
 
 
         acc = accuracy(preds, labels)
         xray_metrics = covid_xray_metrics(labels, preds)
-
-        self.log('COVID19 sensitivity',
-                 xray_metrics['sensitivity'], prog_bar=True, logger=True)
+        auc_score = roc_auc_score(labels, logits)
 
         return {
             'test_acc': acc,
             'sensitivity': xray_metrics['sensitivity'],
             'ppv': xray_metrics['ppv'],
-            'cm': xray_metrics['cm']
+            'cm': xray_metrics['cm'],
+            'auc_score': auc_score
         }
 
     def configure_optimizers(self):
