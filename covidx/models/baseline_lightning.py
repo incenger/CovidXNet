@@ -80,7 +80,7 @@ class XRayClassification(pl.LightningModule):
         logits = torch.cat([x['logits'] for x in outputs])
 
         acc = accuracy(preds, labels)
-        auc_score = roc_auc_score(labels, logits)
+        auc_score = roc_auc_score(labels, logits.cpu().data.numpy())
 
         tensorboard_log = {'val_loss': avg_loss}
 
@@ -103,7 +103,7 @@ class XRayClassification(pl.LightningModule):
 
         acc = accuracy(preds, labels)
         xray_metrics = covid_xray_metrics(labels, preds)
-        auc_score = roc_auc_score(labels, logits)
+        auc_score = roc_auc_score(labels, logits.cpu().data.numpy())
 
         return {
             'test_acc': acc,
