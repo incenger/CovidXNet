@@ -12,6 +12,7 @@ from covidx.models import (ConvNetXray, DenseNetCovidX, EfficientNetCovidXray,
                            ResnetCovidX, XRayClassification)
 
 SEED = 1411
+LOSS_WEIGHT=None
 
 
 def main(args):
@@ -50,7 +51,7 @@ def main(args):
                                      pin_memory=True)
 
     backbone = EfficientNetCovidXray()
-    model = XRayClassification(backbone)
+    model = XRayClassification(backbone, class_weight=LOSS_WEIGHT)
 
     checkpoint_callback = ModelCheckpoint(monitor='val_acc')
     trainer = pl.Trainer.from_argparse_args(
