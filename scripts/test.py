@@ -9,17 +9,34 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
-from covidx.dataset.dataset import CovidxDataset
-from covidx.models.baseline_lightning import XRayClassification
 
-TEST_TRANSFORM = transforms.Compose([
-    transforms.Resize((260, 260)),  # change the input image size if needed
-    transforms.Grayscale(num_output_channels=1),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, ), (0.5, )),
-])
+from covidx.dataset.dataset import CovidxDataset
+from covidx.models import (ConvNetXray, DenseNetCovidX, EfficientNetCovidXray,
+                           ResnetCovidX, XRayClassification)
+
+
+def create_test_transform(img_size, grayscale):
+
+    resize = transforms.Resize((img_size, img_size))
+
+    transform_list = []
+
+    if grayscale:
+        normalize = transforms.Normalize((0.5, ), (0.5, ))
+        transform_list.append(transforms.Grayscale())
+    else:
+        normalize = transforms.Normalize([0.485, 0.456, 0.406],
+                                         [0.229, 0.224, 0.225])
+
+    transform_list.extend([resize, transforms.ToTensor(), normalize])
+
+    return transforms.Compose(transform_list)
+
 
 CLS_MAPPING = ['COVID-19', 'normal', 'pneumonia']
+IMG_SIZE = 320
+GRAYSCALE = False
+TEST_TRANSFORM = create_test_transform(IMG_SIZE, GRAYSCALE)
 
 
 def pil_loader(path):
@@ -28,7 +45,7 @@ def pil_loader(path):
         return img.convert('RGB')
 
 
-def evaluate(ckpt_path, test_folder):
+def evaluate(backbone, ckpt_path, test_folder):
     """ Evaluate model
 
     Returns the metrics defined in 'covidx/metrics'
@@ -47,7 +64,7 @@ def evaluate(ckpt_path, test_folder):
                              pin_memory=True)
 
     model = XRayClassification.load_from_checkpoint(
-        ckpt_path, map_location=lambda storage, loc: storage)
+        ckpt_path, map_location=lambda storage, loc: storage, model=backbone)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -61,7 +78,7 @@ def evaluate(ckpt_path, test_folder):
         print(v)
 
 
-def test_debug(ckpt_path, test_folder, failure_path):
+def test_debug(backbone, ckpt_path, test_folder, failure_path):
     """ Evaluate and write failure cases to a file
 
     The failure csv file has 3 fields: File name, Prediction, Label
@@ -74,7 +91,7 @@ def test_debug(ckpt_path, test_folder, failure_path):
 
     # Load model checkpoint
     model = XRayClassification.load_from_checkpoint(
-        ckpt_path, map_location=lambda storage, loc: storage)
+        ckpt_path, map_location=lambda storage, loc: storage, model=backbone)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -92,12 +109,8 @@ def test_debug(ckpt_path, test_folder, failure_path):
             pred = torch.argmax(F.log_softmax(logit, dim=1), dim=1).item()
             pred_str = CLS_MAPPING[pred]
 
-
             if pred_str != cls:
                 failure.append((os.path.join(cls, sample), pred_str, cls))
-    resnetx = XRayClassification.load_from_checkpoint(
-    './lightning_logs/version_5/checkpoints/epoch=2-step=5387.ckpt',
-    map_location=lambda storage, loc: storage)
 
     # Write failure
     with open(failure_path, 'w') as f:
@@ -107,10 +120,12 @@ def test_debug(ckpt_path, test_folder, failure_path):
 
 
 if __name__ == "__main__":
+    model = DenseNetCovidX(version='161')
     evaluate(
-        "./lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt",
+        model,
+        "./lightning_logs/version_79/checkpoints/epoch=41-step=33011.ckpt",
         "../data/covidx_image_folder/test/")
 
-    test_debug(
-        "./lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt",
-        "../data/covidx_image_folder/test/", "failure.csv")
+    # test_debug(
+    #     "./lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt",
+    #     "../data/covidx_image_folder/test/", "failure.csv")
