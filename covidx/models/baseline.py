@@ -116,9 +116,36 @@ class ConvNetXray(nn.Module):
         out = self.conv3(out)
 
         out = out.reshape(out.shape[0], -1)
-        
 
         out = self.fc1(out)
         out = self.fc2(out)
 
+        return out
+
+
+class DenseNetCovidX(nn.Module):
+    """
+    Covid X-ray classification using Resnet-34 backbone
+
+    Args:
+        num_class: number of output classes
+    """
+    def __init__(self, num_class=3):
+        super().__init__()
+        self.num_class = num_class
+        self.model = models.densenet161(pretrained=True)
+
+        num_ftrs = self.model.classifier.in_features
+
+        self.model.classifier = nn.Linear(num_ftrs, num_class)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: input image, shape (B, C, H, W)
+
+        Returns:
+            torch.Tensor: output logits tensor, shape (B, num_class)
+        """
+        out: torch.Tensor = self.model(x)
         return out
