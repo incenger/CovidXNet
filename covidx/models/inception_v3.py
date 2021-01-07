@@ -5,26 +5,46 @@ import torch
 import torch.nn.functional as F
 from pytorch_lightning.metrics.functional import accuracy
 from torch import nn
+from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 from torchvision import models, transforms
 from torchvision.datasets import MNIST
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from covidx.metrics import covid_xray_metrics
 
-from .baseline import ResnetCovidX, EfficientNetCovidXray, ConvNetXray
+
+class InceptionV3(nn.Module):
+    """
+    InceptionV3 Backbone
+
+    Be careful, the model expects (299, 299) input size and 3 color channels
+    """
+    def __init__(self, out_features=3):
+        super().__init__()
+        self.out_features = out_features
+        self.backbone = models.inception_v3(pretrained=True)
+
+        # Auxilary net
+        num_ftrs = self.backbone.AuxLogits.fc.in_features
+        self.backbone.AuxLogits.fc = nn.Linear(num_ftrs, self.out_features)
+
+        # Primary net
+        num_ftrs = self.backbone.fc.in_features
+        self.backbone.fc = nn.Linear(num_ftrs, self.out_features)
+
+    def forward(self, x):
+        return self.backbone(x)
 
 
-class XRayClassification(pl.LightningModule):
+class InceptionV3Lightning(pl.LightningModule):
     """
     Args:
         num_class: number of output classes
     """
-    def __init__(self, num_class=3):
+    def __init__(self, num_class=3, class_weight=None):
         super().__init__()
         self.num_class = num_class
-        # self.model = ResnetCovidX(num_class=num_class)
-        # self.model = ConvNetXray(num_class=num_class)
-        self.model = EfficientNetCovidXray(num_class=num_class)
+        self.model = InceptionV3(num_class)
+        self.class_weight = class_weight
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -41,8 +61,16 @@ class XRayClassification(pl.LightningModule):
         """
         """
         x, y = batch
-        out = self.model(x)
-        loss = F.cross_entropy(out, y)
+        prim_out, aux_out = self.model(x)
+        # From https://discuss.pytorch.org/t/how-to-optimize-inception-model-with-auxiliary-classifiers/7958
+
+        weight = torch.tensor(self.class_weights).to(
+            x.device) if self.class_weights else None
+
+        aux_loss = F.cross_entropy(aux_out, y, weight=weight)
+        prim_loss = F.cross_entropy(prim_out, y, weight=weight)
+
+        loss = prim_loss + 0.4 * aux_loss
 
         self.log('train_loss', loss, logger=True)
         return loss
@@ -52,7 +80,12 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         logits = self.model(x)
-        loss = F.cross_entropy(logits, y)
+
+        weight = torch.tensor(self.class_weights).to(
+            x.device) if self.class_weights else None
+
+        loss = F.cross_entropy(logits, y, weight=weight)
+
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
         self.log('val_loss', loss)
@@ -78,13 +111,11 @@ class XRayClassification(pl.LightningModule):
         logits = self.model(x)
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
-
         return {'labels': y, 'preds': preds}
 
     def test_epoch_end(self, outputs):
         labels = torch.cat([x['labels'] for x in outputs])
         preds = torch.cat([x['preds'] for x in outputs])
-
 
         acc = accuracy(preds, labels)
         xray_metrics = covid_xray_metrics(labels, preds)
@@ -99,15 +130,17 @@ class XRayClassification(pl.LightningModule):
     def configure_optimizers(self):
         """
         """
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
 
-        lr_dict = {
-            'scheduler': ReduceLROnPlateau(optimizer, patience=5),
-            'interval': 'epoch', # The unit of the scheduler's step size
-            'frequency': 1, # The frequency of the scheduler
-            'reduce_on_plateau': True, # For ReduceLROnPlateau scheduler
-            'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-            'strict': True, # Whether to crash the training if `monitor` is not found
-        }
+        #         lr_dict = {
+        #             'scheduler': ExponentialLR(optimizer, gamma=0.97, verbose=True),
+        #             # 'scheduler': ReduceLROnPlateau(optimizer, patience=5, verbose=True),
+        #             'interval': 'epoch',  # The unit of the scheduler's step size
+        #             'frequency': 2,  # The frequency of the scheduler
+        #             # 'reduce_on_plateau': Fj, # For ReduceLROnPlateau scheduler
+        #             # 'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+        #             'strict':
+        #             True,  # Whether to crash the training if `monitor` is not found
+        #         }
 
-        return [optimizer], [lr_dict]
+        return optimizer

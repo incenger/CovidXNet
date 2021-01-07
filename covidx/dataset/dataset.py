@@ -18,9 +18,9 @@ def xray_augmentation():
     xray_aug = transforms.Compose([
         transforms.RandomHorizontalFlip(0.5),
         transforms.RandomAffine(degrees=10,
-                                translate=(0.2, 0.2),
-                                scale=(0.8, 1.2)),
-        transforms.ColorJitter(brightness=0.2)
+                                translate=(0.1, 0.1),
+                                scale=(0.85, 1.15)),
+        transforms.ColorJitter(brightness=0.1)
     ])
 
     return xray_aug
@@ -37,7 +37,7 @@ def create_balance_dl(dataset, batch_size, num_workers):
     sample_weights = torch.tensor([class_weights[x] for x in dataset.targets])
 
     sampler = torch.utils.data.sampler.WeightedRandomSampler(
-        sample_weights, len(dataset))
+        sample_weights, 30000) # Fix later
 
     dl = torch.utils.data.DataLoader(dataset,
                                      batch_size=batch_size,

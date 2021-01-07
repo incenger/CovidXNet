@@ -8,25 +8,19 @@ from torchvision.datasets import ImageFolder
 
 from covidx.dataset import create_balance_dl, xray_augmentation
 from covidx.dataset.dataset import CovidxDataset
-from covidx.models import (ConvNetXray, DenseNetCovidX, EfficientNetCovidXray,
-                           ResnetCovidX, XRayClassification)
+from covidx.models import InceptionV3Lightning, XRayClassification
 
-SEED = 1411
-LOSS_WEIGHT=None
+SEED = 192
 
 
 def main(args):
     pl.seed_everything(SEED)
 
     transform = transforms.Compose([
-        transforms.Grayscale(num_output_channels=1),
-        transforms.Resize((224, 224)),
+        transforms.Resize((299, 299)),
         xray_augmentation(),
         transforms.ToTensor(),
-        # Normalize for rgb image
-        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), 
-        # Normalize for grayscale
-        transforms.Normalize((0.5, ), (0.5, )),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     train_set = ImageFolder('../data/covidx_image_folder/train',
@@ -34,12 +28,20 @@ def main(args):
     valid_set = ImageFolder('../data/covidx_image_folder/validation',
                             transform=transform)
 
+    # train_set = CovidxDataset('../data/covidx_image_folder/train',
+    #                           transform=transform,
+    #                           state='train')
+
+    # valid_set = CovidxDataset('../data/covidx_image_folder/validation',
+    #                           transform=transform,
+    #                           state='test')
+
     # train_loader_folder = create_balance_dl(train_set,
-    #                                         batch_size=16,
+    #                                         batch_size=32,
     #                                         num_workers=12)
 
     train_loader_folder = DataLoader(train_set,
-                                     batch_size=16,
+                                     batch_size=32,
                                      shuffle=True,
                                      num_workers=12,
                                      pin_memory=True)
@@ -50,13 +52,12 @@ def main(args):
                                      num_workers=12,
                                      pin_memory=True)
 
-    backbone = EfficientNetCovidXray()
-    model = XRayClassification(backbone, class_weight=LOSS_WEIGHT)
+    resnetx = InceptionV3Lightning()
 
     checkpoint_callback = ModelCheckpoint(monitor='val_acc')
     trainer = pl.Trainer.from_argparse_args(
         args, checkpoint_callback=checkpoint_callback)
-    trainer.fit(model, train_loader_folder, valid_loader_folder)
+    trainer.fit(resnetx, train_loader_folder, valid_loader_folder)
 
 
 if __name__ == "__main__":

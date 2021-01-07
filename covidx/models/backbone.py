@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import models
 from efficientnet_pytorch import EfficientNet
+from torchvision import models
 
 
 class ResnetCovidX(nn.Module):
@@ -46,11 +46,11 @@ class EfficientNetCovidXray(nn.Module):
     Args:
         num_class: number of output classes
     """
-    def __init__(self, num_class=3):
+    def __init__(self, version='b2', num_class=3):
         super().__init__()
         self.num_class = num_class
-        self.model = EfficientNet.from_pretrained('efficientnet-b2',
-                                                  in_channels=1)
+        self.model = EfficientNet.from_pretrained(
+            'efficientnet-{}'.format(version), in_channels=1)
         self.fc = nn.Linear(in_features=1000, out_features=self.num_class)
 
     def forward(self, x):
@@ -116,9 +116,39 @@ class ConvNetXray(nn.Module):
         out = self.conv3(out)
 
         out = out.reshape(out.shape[0], -1)
-        
 
         out = self.fc1(out)
         out = self.fc2(out)
 
+        return out
+
+
+class DenseNetCovidX(nn.Module):
+    """
+    Covid X-ray classification using Resnet-34 backbone
+
+    Args:
+        num_class: number of output classes
+    """
+    def __init__(self, version='121', num_class=3):
+        super().__init__()
+        self.num_class = num_class
+        if version == '121':
+            self.model = models.densenet121(pretrained=True)
+        elif version == '161':
+            self.model = models.densenet161(pretrained=True)
+
+        num_ftrs = self.model.classifier.in_features
+
+        self.model.classifier = nn.Linear(num_ftrs, num_class)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: input image, shape (B, C, H, W)
+
+        Returns:
+            torch.Tensor: output logits tensor, shape (B, num_class)
+        """
+        out: torch.Tensor = self.model(x)
         return out
