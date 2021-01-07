@@ -11,7 +11,7 @@ from torchvision.datasets import MNIST
 
 from covidx.metrics import covid_xray_metrics
 
-from .baseline import (ConvNetXray, DenseNetCovidX, EfficientNetCovidXray,
+from .backbone import (ConvNetXray, DenseNetCovidX, EfficientNetCovidXray,
                        ResnetCovidX)
 
 
