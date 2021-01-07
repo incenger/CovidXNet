@@ -77,6 +77,7 @@ def evaluate(backbone, ckpt_path, test_folder):
         print(k)
         print(v)
 
+
 @torch.no_grad()
 def test_debug(backbone, ckpt_path, test_folder, failure_path):
     """ Evaluate and write failure cases to a file
@@ -128,6 +129,7 @@ if __name__ == "__main__":
         "./lightning_logs/version_79/checkpoints/epoch=41-step=33011.ckpt",
         "../data/covidx_image_folder/test/")
 
-    # test_debug(
-    #     "./lightning_logs/version_40/checkpoints/epoch=28-step=11396.ckpt",
-    #     "../data/covidx_image_folder/test/", "failure.csv")
+    test_debug(
+        model,
+        "./lightning_logs/version_79/checkpoints/epoch=41-step=33011.ckpt",
+        "../data/covidx_image_folder/test/", "failure.csv")
