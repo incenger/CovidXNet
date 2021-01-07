@@ -20,9 +20,10 @@ class XRayClassification(pl.LightningModule):
     Args:
         num_class: number of output classes
     """
-    def __init__(self, model):
+    def __init__(self, model, class_weight=None):
         super().__init__()
         self.model = model
+        self.class_weights = class_weight
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -40,9 +41,11 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         out = self.model(x)
-        # weight = torch.tensor([0.8, 0.1, 0.1]).to(x.device)
 
-        loss = F.cross_entropy(out, y)
+        weight = torch.tensor(self.class_weights).to(
+            x.device) if self.class_weights else None
+
+        loss = F.cross_entropy(out, y, weight=weight)
 
         self.log('train_loss', loss, logger=True)
         return loss
@@ -52,10 +55,12 @@ class XRayClassification(pl.LightningModule):
         """
         x, y = batch
         logits = self.model(x)
-        loss = F.cross_entropy(logits, y)
 
-        # weight = torch.tensor([0.8, 0.1, 0.1]).to(x.device)
-        # loss = F.cross_entropy(logits, y, weight=weight)
+        weight = torch.tensor(self.class_weights).to(
+            x.device) if self.class_weights else None
+
+        loss = F.cross_entropy(logits, y, weight=weight)
+
         preds = torch.argmax(F.log_softmax(logits, dim=1), dim=1)
 
         self.log('val_loss', loss)
