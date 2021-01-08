@@ -5,6 +5,14 @@ setup(
     version='1.0.0',
     include_package_data=True,
     packages=find_packages(exclude=["data", "scripts"])
-    install_requires=[],
+    install_requires=[
+        "numpy",
+        "torch",
+        "torchvision",
+        "opencv-python",
+        "scikit-learn",
+        "matplotlib",
+        "tensorboard",
+    ],
     python_requires=">=3.6",
 )
