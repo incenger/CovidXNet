@@ -33,11 +33,10 @@ The model weights are attached in the experiment google sheet. Please contact au
 ## Experiments
 
 
-[Experiments](https://docs.google.com/spreadsheets/d/1PitgackeuOlWP2lzdRSbNR7U3Nm2_E_tRqy5gK0Djn0/edit?usp=sharing)
+[Experiments & Model Weight](https://docs.google.com/spreadsheets/d/1PitgackeuOlWP2lzdRSbNR7U3Nm2_E_tRqy5gK0Djn0/edit?usp=sharing)
 
 
 ## Miscellaneous
 
-* [Weekly Meeting Minute](https://docs.google.com/document/d/1wEajJbrCYYQxpfayAGwHiW4xb-JEEWrZyfxJ4gDY6As/edit)
 
 * [Dataset](https://drive.google.com/drive/folders/1qaY8Qktg2PLcjFBsAlsKVLHt06cgB-L8?usp=sharing)
